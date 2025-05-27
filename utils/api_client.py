@@ -2,6 +2,7 @@ import requests
 from typing import Dict, Any, Optional
 import logging
 from requests.exceptions import RequestException
+import time
 
 class APIClient:
     def __init__(self, base_url: str):
@@ -25,6 +26,7 @@ class APIClient:
         
         try:
             self.logger.info(f"Making {method} request to {url}")
+            start_time = time.time()
             response = self.session.request(
                 method=method,
                 url=url,
@@ -33,11 +35,20 @@ class APIClient:
                 headers=headers,
                 timeout=timeout
             )
+            response_time = time.time() - start_time
+            response.elapsed_time = response_time
+            self.logger.info(f"Request completed in {response_time:.2f} seconds")
             response.raise_for_status()
             return response
         except RequestException as e:
             self.logger.error(f"Request failed: {str(e)}")
             raise
+
+    def check_response_time(self, response: requests.Response, max_time: float) -> bool:
+        """
+        Check if response time is within acceptable limits
+        """
+        return response.elapsed_time <= max_time
 
     def get(self, endpoint: str, params: Optional[Dict[str, Any]] = None, **kwargs) -> requests.Response:
         return self._make_request("GET", endpoint, params=params, **kwargs)

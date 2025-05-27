@@ -1,18 +1,23 @@
-from pydantic import BaseSettings
-from dotenv import load_dotenv
-import os
-
-load_dotenv()
+from pydantic_settings import BaseSettings
+from typing import Optional
 
 class Settings(BaseSettings):
-    """Application settings."""
-    API_BASE_URL: str = os.getenv("API_BASE_URL", "")
-    UI_BASE_URL: str = os.getenv("UI_BASE_URL", "")
-    BROWSER: str = os.getenv("BROWSER", "chrome")
-    HEADLESS: bool = os.getenv("HEADLESS", "False").lower() == "true"
-    IMPLICIT_WAIT: int = int(os.getenv("IMPLICIT_WAIT", "10"))
-    PAGE_LOAD_TIMEOUT: int = int(os.getenv("PAGE_LOAD_TIMEOUT", "30"))
-
+    # Browser settings
+    BROWSER: str = "chrome"
+    HEADLESS: bool = False
+    
+    # Timeouts
+    IMPLICIT_WAIT: int = 10
+    PAGE_LOAD_TIMEOUT: int = 30
+    SCRIPT_TIMEOUT: int = 30
+    
+    # URLs
+    BASE_URL: str = "https://automationexercise.com"
+    
+    # Test data
+    TEST_USER_EMAIL: str = "test@example.com"
+    TEST_USER_PASSWORD: str = "password123"
+    
     class Config:
         env_file = ".env"
         case_sensitive = True

@@ -1,70 +1,52 @@
 import requests
 from typing import Dict, Any, Optional
-from jsonschema import validate
-import json
+import logging
+from requests.exceptions import RequestException
 
 class APIClient:
     def __init__(self, base_url: str):
-        self.base_url = base_url
+        self.base_url = base_url.rstrip('/')
         self.session = requests.Session()
+        self.logger = logging.getLogger(__name__)
 
     def _make_request(
         self,
         method: str,
         endpoint: str,
-        data: Optional[Dict[str, Any]] = None,
         params: Optional[Dict[str, Any]] = None,
+        json: Optional[Dict[str, Any]] = None,
         headers: Optional[Dict[str, str]] = None,
-        json_schema: Optional[Dict[str, Any]] = None
+        timeout: int = 30
     ) -> requests.Response:
         """
-        Make an HTTP request and validate response against JSON schema if provided.
+        Make HTTP request with proper error handling and logging
         """
-        url = f"{self.base_url}{endpoint}"
-        response = self.session.request(
-            method=method,
-            url=url,
-            json=data,
-            params=params,
-            headers=headers
-        )
+        url = f"{self.base_url}/{endpoint.lstrip('/')}"
         
-        if json_schema:
-            validate(instance=response.json(), schema=json_schema)
-            
-        return response
+        try:
+            self.logger.info(f"Making {method} request to {url}")
+            response = self.session.request(
+                method=method,
+                url=url,
+                params=params,
+                json=json,
+                headers=headers,
+                timeout=timeout
+            )
+            response.raise_for_status()
+            return response
+        except RequestException as e:
+            self.logger.error(f"Request failed: {str(e)}")
+            raise
 
-    def get(
-        self,
-        endpoint: str,
-        params: Optional[Dict[str, Any]] = None,
-        headers: Optional[Dict[str, str]] = None,
-        json_schema: Optional[Dict[str, Any]] = None
-    ) -> requests.Response:
-        return self._make_request("GET", endpoint, params=params, headers=headers, json_schema=json_schema)
+    def get(self, endpoint: str, params: Optional[Dict[str, Any]] = None, **kwargs) -> requests.Response:
+        return self._make_request("GET", endpoint, params=params, **kwargs)
 
-    def post(
-        self,
-        endpoint: str,
-        data: Optional[Dict[str, Any]] = None,
-        headers: Optional[Dict[str, str]] = None,
-        json_schema: Optional[Dict[str, Any]] = None
-    ) -> requests.Response:
-        return self._make_request("POST", endpoint, data=data, headers=headers, json_schema=json_schema)
+    def post(self, endpoint: str, json: Optional[Dict[str, Any]] = None, **kwargs) -> requests.Response:
+        return self._make_request("POST", endpoint, json=json, **kwargs)
 
-    def put(
-        self,
-        endpoint: str,
-        data: Optional[Dict[str, Any]] = None,
-        headers: Optional[Dict[str, str]] = None,
-        json_schema: Optional[Dict[str, Any]] = None
-    ) -> requests.Response:
-        return self._make_request("PUT", endpoint, data=data, headers=headers, json_schema=json_schema)
+    def put(self, endpoint: str, json: Optional[Dict[str, Any]] = None, **kwargs) -> requests.Response:
+        return self._make_request("PUT", endpoint, json=json, **kwargs)
 
-    def delete(
-        self,
-        endpoint: str,
-        headers: Optional[Dict[str, str]] = None,
-        json_schema: Optional[Dict[str, Any]] = None
-    ) -> requests.Response:
-        return self._make_request("DELETE", endpoint, headers=headers, json_schema=json_schema) 
+    def delete(self, endpoint: str, **kwargs) -> requests.Response:
+        return self._make_request("DELETE", endpoint, **kwargs) 
